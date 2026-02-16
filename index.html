@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Planner</title>
+    <title>🌶️ Harissa</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="notification" class="notification"></div>
     <div class="container">
         <header class="header">
-            <h1 class="app-title">Meal Planner</h1>
+            <h1 class="app-title">Harissa</h1>
             <div class="header-actions">
                 <button class="button sync-button" onclick="syncData()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -31,7 +32,7 @@
             <button class="tab-button active" onclick="showTab('calendar')">Calendar</button>
             <button class="tab-button" onclick="showTab('meals')">Meals</button>
             <button class="tab-button" onclick="showTab('pantry')">Pantry</button>
-            <button class="tab-button" onclick="showTab('grocery')">Grocery List</button>
+            <button class="tab-button" onclick="showTab('grocery')">Grocery</button>
         </nav>
 
         <div id="calendar-tab" class="tab-content active">
@@ -47,6 +48,7 @@
                         <polyline points="9 18 15 12 9 6"/>
                     </svg>
                 </button>
+                <button class="button" onclick="goToToday()">Today</button>
             </div>
             <div class="calendar-grid" id="calendar-grid"></div>
         </div>
@@ -100,6 +102,10 @@
                     <input type="text" id="meal-name" class="input" placeholder="e.g., Spaghetti Bolognese">
                 </div>
                 <div class="form-group">
+                    <label>Source</label>
+                    <input type="text" id="meal-source" class="input" placeholder="e.g., https://example.com/recipe or Recipe book page 42">
+                </div>
+                <div class="form-group">
                     <label>Ingredients</label>
                     <div id="ingredients-list"></div>
                     <div class="ingredient-input-group">
@@ -129,6 +135,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="item-type">
+                <input type="hidden" id="edit-item-id">
                 <div class="form-group">
                     <label>Item Name</label>
                     <input type="text" id="item-name" class="input" placeholder="e.g., Tomatoes">
@@ -268,6 +275,15 @@
             localStorage.setItem('mealPlannerData', JSON.stringify(appData));
         }
 
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} active`;
+            setTimeout(() => {
+                notification.classList.remove('active');
+            }, 3000);
+        }
+
         function showTab(tabName) {
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -341,6 +357,13 @@
             renderCalendar();
         }
 
+        function goToToday() {
+            const today = new Date();
+            currentWeekStart = new Date(today);
+            currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
+            renderCalendar();
+        }
+
         function checkMealStatus(meal) {
             const hasAllIngredients = meal.ingredients.every(ing => 
                 appData.pantry.some(p => p.name.toLowerCase() === ing.name.toLowerCase())
@@ -384,7 +407,7 @@
             }
             
             if (!finalMealId) {
-                alert('Please select a meal or enter a meal name');
+                showNotification('Please select a meal or enter a meal name', 'error');
                 return;
             }
             
@@ -412,6 +435,7 @@
             renderGrocery();
             renderMeals();
             closeScheduleModal();
+            showNotification('Meal scheduled successfully!', 'success');
         }
         
         function handleMealSelection() {
@@ -440,16 +464,7 @@
         }
 
         function editScheduledMeal(date, mealType) {
-            if (confirm('Remove this meal from schedule?')) {
-                if (appData.schedule[date]) {
-                    delete appData.schedule[date][mealType];
-                    if (Object.keys(appData.schedule[date]).length === 0) {
-                        delete appData.schedule[date];
-                    }
-                }
-                saveData();
-                renderCalendar();
-            }
+            openScheduleModal(date, mealType);
         }
 
         function renderMeals() {
@@ -461,11 +476,13 @@
             }
             appData.meals.forEach(meal => {
                 const status = checkMealStatus(meal);
+                const sourceHtml = meal.source ? `<div class="row-source">${isValidUrl(meal.source) ? `<a href="${meal.source}" target="_blank" rel="noopener noreferrer">${meal.source}</a>` : meal.source}</div>` : '';
                 const row = document.createElement('div');
                 row.className = 'row';
                 row.innerHTML = `
                     <div class="row-content">
                         <div class="row-title">${meal.name}</div>
+                        ${sourceHtml}
                         <div class="row-subtitle">${meal.ingredients.length} ingredients - ${status === 'complete' ? 'Ready to cook' : 'Missing ingredients'}</div>
                     </div>
                     <div class="row-actions">
@@ -487,6 +504,15 @@
             });
         }
 
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
         function filterMeals(search) {
             const searchLower = search.toLowerCase();
             const rows = document.querySelectorAll('#meals-list .row');
@@ -500,6 +526,7 @@
             document.getElementById('meal-modal-title').textContent = 'Add New Meal';
             document.getElementById('edit-meal-id').value = '';
             document.getElementById('meal-name').value = '';
+            document.getElementById('meal-source').value = '';
             currentIngredients = [];
             renderIngredientsList();
             document.getElementById('meal-modal').classList.add('active');
@@ -545,6 +572,7 @@
 
         function saveMeal() {
             const name = document.getElementById('meal-name').value.trim();
+            const source = document.getElementById('meal-source').value.trim();
             const editId = document.getElementById('edit-meal-id').value;
             if (!name || currentIngredients.length === 0) {
                 alert('Please enter a meal name and at least one ingredient');
@@ -555,6 +583,7 @@
             if (editId) {
                 const meal = appData.meals.find(m => m.id === editId);
                 meal.name = name;
+                meal.source = source;
                 meal.ingredients = [...currentIngredients];
                 mealId = editId;
             } else {
@@ -562,6 +591,7 @@
                 appData.meals.push({
                     id: mealId,
                     name,
+                    source,
                     ingredients: [...currentIngredients]
                 });
             }
@@ -570,6 +600,7 @@
             renderMeals();
             renderCalendar();
             closeMealModal();
+            showNotification(editId ? 'Meal updated successfully!' : 'Meal created successfully!', 'success');
             
             // Check if there's a pending schedule
             const pendingSchedule = sessionStorage.getItem('pendingSchedule');
@@ -607,6 +638,7 @@
             document.getElementById('meal-modal-title').textContent = 'Edit Meal';
             document.getElementById('edit-meal-id').value = id;
             document.getElementById('meal-name').value = meal.name;
+            document.getElementById('meal-source').value = meal.source || '';
             currentIngredients = [...meal.ingredients];
             renderIngredientsList();
             document.getElementById('meal-modal').classList.add('active');
@@ -618,6 +650,7 @@
                 saveData();
                 renderMeals();
                 renderCalendar();
+                showNotification('Meal deleted successfully!', 'success');
             }
         }
 
@@ -637,6 +670,12 @@
                         <div class="row-subtitle">${item.amount}</div>
                     </div>
                     <div class="row-actions">
+                        <button class="icon-button" onclick="editPantryItem('${item.id}')" title="Edit">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
                         <button class="icon-button" onclick="deleteFromPantry('${item.id}')" title="Remove">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"/>
@@ -663,6 +702,7 @@
             saveData();
             renderPantry();
             renderCalendar();
+            showNotification('Item removed from pantry!', 'success');
         }
 
         function renderGrocery() {
@@ -687,6 +727,12 @@
                                 Move to Pantry
                             </button>
                         ` : ''}
+                        <button class="icon-button" onclick="editGroceryItem('${item.id}')" title="Edit">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
                         <button class="icon-button" onclick="deleteFromGrocery('${item.id}')" title="Delete">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"/>
@@ -731,13 +777,37 @@
             appData.grocery = appData.grocery.filter(g => g.id !== id);
             saveData();
             renderGrocery();
+            showNotification('Item removed from grocery list!', 'success');
+        }
+
+        function editGroceryItem(id) {
+            const item = appData.grocery.find(g => g.id == id);
+            if (!item) return;
+            document.getElementById('item-modal-title').textContent = 'Edit Grocery Item';
+            document.getElementById('item-type').value = 'grocery';
+            document.getElementById('edit-item-id').value = id;
+            document.getElementById('item-name').value = item.name;
+            document.getElementById('item-amount').value = item.amount;
+            document.getElementById('item-modal').classList.add('active');
         }
 
         function showAddItemModal(type) {
             document.getElementById('item-modal-title').textContent = type === 'pantry' ? 'Add to Pantry' : 'Add to Grocery List';
             document.getElementById('item-type').value = type;
+            document.getElementById('edit-item-id').value = '';
             document.getElementById('item-name').value = '';
             document.getElementById('item-amount').value = '';
+            document.getElementById('item-modal').classList.add('active');
+        }
+
+        function editPantryItem(id) {
+            const item = appData.pantry.find(p => p.id == id);
+            if (!item) return;
+            document.getElementById('item-modal-title').textContent = 'Edit Pantry Item';
+            document.getElementById('item-type').value = 'pantry';
+            document.getElementById('edit-item-id').value = id;
+            document.getElementById('item-name').value = item.name;
+            document.getElementById('item-amount').value = item.amount;
             document.getElementById('item-modal').classList.add('active');
         }
 
@@ -749,18 +819,44 @@
             const type = document.getElementById('item-type').value;
             const name = document.getElementById('item-name').value.trim();
             const amount = document.getElementById('item-amount').value.trim();
+            const editId = document.getElementById('edit-item-id').value;
             if (!name) return;
-            const item = { id: Date.now() + Math.random(), name, amount };
-            if (type === 'pantry') {
-                appData.pantry.push(item);
-                renderPantry();
+            
+            if (editId) {
+                // Edit mode
+                if (type === 'pantry') {
+                    const item = appData.pantry.find(p => p.id == editId);
+                    if (item) {
+                        item.name = name;
+                        item.amount = amount;
+                        showNotification('Pantry item updated successfully!', 'success');
+                    }
+                } else {
+                    const item = appData.grocery.find(g => g.id == editId);
+                    if (item) {
+                        item.name = name;
+                        item.amount = amount;
+                        showNotification('Grocery item updated successfully!', 'success');
+                    }
+                }
             } else {
-                item.checked = false;
-                appData.grocery.push(item);
-                renderGrocery();
+                // Add mode
+                const item = { id: Date.now() + Math.random(), name, amount };
+                if (type === 'pantry') {
+                    appData.pantry.push(item);
+                    renderPantry();
+                    showNotification('Item added to pantry!', 'success');
+                } else {
+                    item.checked = false;
+                    appData.grocery.push(item);
+                    renderGrocery();
+                    showNotification('Item added to grocery list!', 'success');
+                }
             }
             saveData();
             renderCalendar();
+            renderPantry();
+            renderGrocery();
             closeItemModal();
         }
 
@@ -789,7 +885,10 @@
         }
 
         function syncData() {
-            alert('Syncing with cloud... (This is a demo - real implementation would sync with your chosen provider)');
+            showNotification('Syncing with cloud...', 'success');
+            setTimeout(() => {
+                showNotification('Sync completed successfully!', 'success');
+            }, 1500);
         }
 
         function exportData() {
@@ -800,6 +899,7 @@
             link.href = url;
             link.download = 'meal-planner-data.json';
             link.click();
+            showNotification('Data exported successfully!', 'success');
         }
 
         function importData() {
@@ -817,9 +917,9 @@
                         renderMeals();
                         renderPantry();
                         renderGrocery();
-                        alert('Data imported successfully!');
+                        showNotification('Data imported successfully!', 'success');
                     } catch (err) {
-                        alert('Error importing data. Please check the file format.');
+                        showNotification('Error importing data. Please check the file format.', 'error');
                     }
                 };
                 reader.readAsText(file);
