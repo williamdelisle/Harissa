@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Planner</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="app-title">Meal Planner</h1>
+            <div class="header-actions">
+                <button class="button sync-button" onclick="syncData()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                    Sync
+                </button>
+                <button class="button" onclick="showSettings()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2m7-5.2h-6m-6 0H1m13.2-5.2l-4.2 4.2m0-6l4.2-4.2"/>
+                    </svg>
+                    Settings
+                </button>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-button active" onclick="showTab('calendar')">Calendar</button>
+            <button class="tab-button" onclick="showTab('meals')">Meals</button>
+            <button class="tab-button" onclick="showTab('pantry')">Pantry</button>
+            <button class="tab-button" onclick="showTab('grocery')">Grocery List</button>
+        </nav>
+
+        <div id="calendar-tab" class="tab-content active">
+            <div class="week-navigation">
+                <button class="button" onclick="previousWeek()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                </button>
+                <h2 id="week-display">Week of Jan 1, 2025</h2>
+                <button class="button" onclick="nextWeek()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <div id="meals-tab" class="tab-content">
+            <div class="section-header">
+                <h2>My Meals</h2>
+                <button class="button" onclick="showAddMealModal()">Add Meal</button>
+            </div>
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Search meals..." oninput="filterMeals(this.value)">
+            </div>
+            <div id="meals-list" class="list-container"></div>
+        </div>
+
+        <div id="pantry-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Pantry</h2>
+                <button class="button" onclick="showAddItemModal('pantry')">Add Item</button>
+            </div>
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Search pantry..." oninput="filterPantry(this.value)">
+            </div>
+            <div id="pantry-list" class="list-container"></div>
+        </div>
+
+        <div id="grocery-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Grocery List</h2>
+                <button class="button" onclick="showAddItemModal('grocery')">Add Item</button>
+            </div>
+            <div id="grocery-list" class="list-container"></div>
+        </div>
+    </div>
+
+    <div id="meal-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="meal-modal-title">Add New Meal</h3>
+                <button class="close-button" onclick="closeMealModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-meal-id">
+                <div class="form-group">
+                    <label>Meal Name</label>
+                    <input type="text" id="meal-name" class="input" placeholder="e.g., Spaghetti Bolognese">
+                </div>
+                <div class="form-group">
+                    <label>Ingredients</label>
+                    <div id="ingredients-list"></div>
+                    <div class="ingredient-input-group">
+                        <input type="text" id="ingredient-name" class="input" placeholder="Ingredient name">
+                        <input type="text" id="ingredient-amount" class="input" placeholder="Amount">
+                        <button class="button" onclick="addIngredient()">Add</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="button secondary" onclick="closeMealModal()">Cancel</button>
+                <button class="button primary" onclick="saveMeal()">Save Meal</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="item-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="item-modal-title">Add Item</h3>
+                <button class="close-button" onclick="closeItemModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="item-type">
+                <div class="form-group">
+                    <label>Item Name</label>
+                    <input type="text" id="item-name" class="input" placeholder="e.g., Tomatoes">
+                </div>
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="text" id="item-amount" class="input" placeholder="e.g., 2 lbs">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="button secondary" onclick="closeItemModal()">Cancel</button>
+                <button class="button primary" onclick="saveItem()">Add Item</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="schedule-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Schedule Meal</h3>
+                <button class="close-button" onclick="closeScheduleModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="schedule-date">
+                <input type="hidden" id="schedule-meal-type">
+                <div class="form-group">
+                    <label>Select Existing Meal</label>
+                    <select id="schedule-meal-select" class="input" onchange="handleMealSelection()">
+                        <option value="">Choose a meal...</option>
+                    </select>
+                </div>
+                <div class="form-group" style="text-align: center; margin: 20px 0;">
+                    <span style="color: var(--text-secondary);">— OR —</span>
+                </div>
+                <div class="form-group">
+                    <label>Quick Add Meal Name</label>
+                    <input type="text" id="quick-meal-name" class="input" placeholder="e.g., Leftover Pizza" oninput="handleQuickMealInput()">
+                    <p class="help-text">Quickly schedule a meal without adding ingredients</p>
+                </div>
+                <div class="button-group">
+                    <button class="button secondary" onclick="openCreateMealFromSchedule()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Create New Meal
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="button secondary" onclick="closeScheduleModal()">Cancel</button>
+                <button class="button primary" onclick="scheduleMeal()">Schedule</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="close-button" onclick="closeSettings()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Cloud Backup</label>
+                    <p class="help-text">Connect your account to backup and sync your data across devices</p>
+                    <div class="button-group">
+                        <button class="button" onclick="connectGmail()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                            Gmail
+                        </button>
+                        <button class="button" onclick="connectICloud()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                            </svg>
+                            iCloud
+                        </button>
+                    </div>
+                    <div id="sync-status" class="sync-status"></div>
+                </div>
+                <div class="form-group">
+                    <label>Data Management</label>
+                    <div class="button-group">
+                        <button class="button secondary" onclick="exportData()">Export Data</button>
+                        <button class="button secondary" onclick="importData()">Import Data</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="button" onclick="closeSettings()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let appData = {
+            meals: [],
+            pantry: [],
+            grocery: [],
+            schedule: {},
+            syncProvider: null
+        };
+
+        let currentWeekStart = new Date();
+        currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
+        let currentIngredients = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            renderCalendar();
+            renderMeals();
+            renderPantry();
+            renderGrocery();
+        });
+
+        function loadData() {
+            const saved = localStorage.getItem('mealPlannerData');
+            if (saved) {
+                appData = JSON.parse(saved);
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('mealPlannerData', JSON.stringify(appData));
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(date.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                const dayColumn = document.createElement('div');
+                dayColumn.className = 'day-column';
+                dayColumn.innerHTML = `
+                    <div class="day-header">
+                        <div class="day-name">${days[i]}</div>
+                        <div class="day-date">${date.getDate()}</div>
+                    </div>
+                `;
+                
+                mealTypes.forEach(mealType => {
+                    const scheduledMeal = appData.schedule[dateStr]?.[mealType];
+                    if (scheduledMeal) {
+                        const meal = appData.meals.find(m => m.id === scheduledMeal);
+                        if (meal) {
+                            const status = checkMealStatus(meal);
+                            dayColumn.innerHTML += `
+                                <div class="meal-slot ${status}" onclick="editScheduledMeal('${dateStr}', '${mealType}')">
+                                    <div class="meal-type">${mealType}</div>
+                                    <div class="meal-name">${meal.name}</div>
+                                    <div class="meal-status">${status === 'complete' ? 'All ingredients ready' : 'Missing ingredients'}</div>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        dayColumn.innerHTML += `
+                            <div class="meal-slot empty" onclick="openScheduleModal('${dateStr}', '${mealType}')">
+                                <div class="meal-type">${mealType}</div>
+                                <div style="margin-top: 8px;">Add meal</div>
+                            </div>
+                        `;
+                    }
+                });
+                grid.appendChild(dayColumn);
+            }
+            updateWeekDisplay();
+        }
+
+        function updateWeekDisplay() {
+            const endDate = new Date(currentWeekStart);
+            endDate.setDate(endDate.getDate() + 6);
+            const options = { month: 'short', day: 'numeric', year: 'numeric' };
+            const startStr = currentWeekStart.toLocaleDateString('en-US', options);
+            const endStr = endDate.toLocaleDateString('en-US', options);
+            document.getElementById('week-display').textContent = `${startStr} - ${endStr}`;
+        }
+
+        function previousWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            renderCalendar();
+        }
+
+        function nextWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+            renderCalendar();
+        }
+
+        function checkMealStatus(meal) {
+            const hasAllIngredients = meal.ingredients.every(ing => 
+                appData.pantry.some(p => p.name.toLowerCase() === ing.name.toLowerCase())
+            );
+            return hasAllIngredients ? 'complete' : 'incomplete';
+        }
+
+        function openScheduleModal(date, mealType) {
+            document.getElementById('schedule-date').value = date;
+            document.getElementById('schedule-meal-type').value = mealType;
+            document.getElementById('quick-meal-name').value = '';
+            const select = document.getElementById('schedule-meal-select');
+            select.innerHTML = '<option value="">Choose a meal...</option>';
+            appData.meals.forEach(meal => {
+                select.innerHTML += `<option value="${meal.id}">${meal.name}</option>`;
+            });
+            document.getElementById('schedule-modal').classList.add('active');
+        }
+
+        function closeScheduleModal() {
+            document.getElementById('schedule-modal').classList.remove('active');
+        }
+
+        function scheduleMeal() {
+            const date = document.getElementById('schedule-date').value;
+            const mealType = document.getElementById('schedule-meal-type').value;
+            const mealId = document.getElementById('schedule-meal-select').value;
+            const quickMealName = document.getElementById('quick-meal-name').value.trim();
+            
+            let finalMealId = mealId;
+            
+            // If quick meal name is provided, create a meal on the fly
+            if (!mealId && quickMealName) {
+                const newMeal = {
+                    id: Date.now().toString(),
+                    name: quickMealName,
+                    ingredients: []
+                };
+                appData.meals.push(newMeal);
+                finalMealId = newMeal.id;
+            }
+            
+            if (!finalMealId) {
+                alert('Please select a meal or enter a meal name');
+                return;
+            }
+            
+            if (!appData.schedule[date]) appData.schedule[date] = {};
+            appData.schedule[date][mealType] = finalMealId;
+            
+            const meal = appData.meals.find(m => m.id === finalMealId);
+            if (meal && meal.ingredients.length > 0) {
+                meal.ingredients.forEach(ing => {
+                    const inPantry = appData.pantry.some(p => p.name.toLowerCase() === ing.name.toLowerCase());
+                    const inGrocery = appData.grocery.some(g => g.name.toLowerCase() === ing.name.toLowerCase());
+                    if (!inPantry && !inGrocery) {
+                        appData.grocery.push({
+                            id: Date.now() + Math.random(),
+                            name: ing.name,
+                            amount: ing.amount,
+                            checked: false
+                        });
+                    }
+                });
+            }
+            
+            saveData();
+            renderCalendar();
+            renderGrocery();
+            renderMeals();
+            closeScheduleModal();
+        }
+        
+        function handleMealSelection() {
+            // Clear quick meal input when selecting from dropdown
+            if (document.getElementById('schedule-meal-select').value) {
+                document.getElementById('quick-meal-name').value = '';
+            }
+        }
+        
+        function handleQuickMealInput() {
+            // Clear dropdown when typing in quick meal
+            if (document.getElementById('quick-meal-name').value.trim()) {
+                document.getElementById('schedule-meal-select').value = '';
+            }
+        }
+        
+        function openCreateMealFromSchedule() {
+            const date = document.getElementById('schedule-date').value;
+            const mealType = document.getElementById('schedule-meal-type').value;
+            
+            // Store scheduling info for after meal creation
+            sessionStorage.setItem('pendingSchedule', JSON.stringify({ date, mealType }));
+            
+            closeScheduleModal();
+            showAddMealModal();
+        }
+
+        function editScheduledMeal(date, mealType) {
+            if (confirm('Remove this meal from schedule?')) {
+                if (appData.schedule[date]) {
+                    delete appData.schedule[date][mealType];
+                    if (Object.keys(appData.schedule[date]).length === 0) {
+                        delete appData.schedule[date];
+                    }
+                }
+                saveData();
+                renderCalendar();
+            }
+        }
+
+        function renderMeals() {
+            const list = document.getElementById('meals-list');
+            list.innerHTML = '';
+            if (appData.meals.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No meals yet. Add your first meal!</p>';
+                return;
+            }
+            appData.meals.forEach(meal => {
+                const status = checkMealStatus(meal);
+                const row = document.createElement('div');
+                row.className = 'row';
+                row.innerHTML = `
+                    <div class="row-content">
+                        <div class="row-title">${meal.name}</div>
+                        <div class="row-subtitle">${meal.ingredients.length} ingredients - ${status === 'complete' ? 'Ready to cook' : 'Missing ingredients'}</div>
+                    </div>
+                    <div class="row-actions">
+                        <button class="icon-button" onclick="editMeal('${meal.id}')" title="Edit">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button class="icon-button" onclick="deleteMeal('${meal.id}')" title="Delete">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function filterMeals(search) {
+            const searchLower = search.toLowerCase();
+            const rows = document.querySelectorAll('#meals-list .row');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchLower) ? '' : 'none';
+            });
+        }
+
+        function showAddMealModal() {
+            document.getElementById('meal-modal-title').textContent = 'Add New Meal';
+            document.getElementById('edit-meal-id').value = '';
+            document.getElementById('meal-name').value = '';
+            currentIngredients = [];
+            renderIngredientsList();
+            document.getElementById('meal-modal').classList.add('active');
+        }
+
+        function closeMealModal() {
+            document.getElementById('meal-modal').classList.remove('active');
+        }
+
+        function addIngredient() {
+            const name = document.getElementById('ingredient-name').value.trim();
+            const amount = document.getElementById('ingredient-amount').value.trim();
+            if (!name) return;
+            currentIngredients.push({ name, amount });
+            document.getElementById('ingredient-name').value = '';
+            document.getElementById('ingredient-amount').value = '';
+            renderIngredientsList();
+        }
+
+        function renderIngredientsList() {
+            const list = document.getElementById('ingredients-list');
+            list.innerHTML = '';
+            currentIngredients.forEach((ing, index) => {
+                const div = document.createElement('div');
+                div.className = 'ingredient-item';
+                div.innerHTML = `
+                    <span>${ing.name} ${ing.amount ? '(' + ing.amount + ')' : ''}</span>
+                    <button class="icon-button" onclick="removeIngredient(${index})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function removeIngredient(index) {
+            currentIngredients.splice(index, 1);
+            renderIngredientsList();
+        }
+
+        function saveMeal() {
+            const name = document.getElementById('meal-name').value.trim();
+            const editId = document.getElementById('edit-meal-id').value;
+            if (!name || currentIngredients.length === 0) {
+                alert('Please enter a meal name and at least one ingredient');
+                return;
+            }
+            
+            let mealId;
+            if (editId) {
+                const meal = appData.meals.find(m => m.id === editId);
+                meal.name = name;
+                meal.ingredients = [...currentIngredients];
+                mealId = editId;
+            } else {
+                mealId = Date.now().toString();
+                appData.meals.push({
+                    id: mealId,
+                    name,
+                    ingredients: [...currentIngredients]
+                });
+            }
+            
+            saveData();
+            renderMeals();
+            renderCalendar();
+            closeMealModal();
+            
+            // Check if there's a pending schedule
+            const pendingSchedule = sessionStorage.getItem('pendingSchedule');
+            if (pendingSchedule) {
+                const { date, mealType } = JSON.parse(pendingSchedule);
+                sessionStorage.removeItem('pendingSchedule');
+                
+                // Schedule the newly created meal
+                if (!appData.schedule[date]) appData.schedule[date] = {};
+                appData.schedule[date][mealType] = mealId;
+                
+                const meal = appData.meals.find(m => m.id === mealId);
+                meal.ingredients.forEach(ing => {
+                    const inPantry = appData.pantry.some(p => p.name.toLowerCase() === ing.name.toLowerCase());
+                    const inGrocery = appData.grocery.some(g => g.name.toLowerCase() === ing.name.toLowerCase());
+                    if (!inPantry && !inGrocery) {
+                        appData.grocery.push({
+                            id: Date.now() + Math.random(),
+                            name: ing.name,
+                            amount: ing.amount,
+                            checked: false
+                        });
+                    }
+                });
+                
+                saveData();
+                renderCalendar();
+                renderGrocery();
+            }
+        }
+
+        function editMeal(id) {
+            const meal = appData.meals.find(m => m.id === id);
+            if (!meal) return;
+            document.getElementById('meal-modal-title').textContent = 'Edit Meal';
+            document.getElementById('edit-meal-id').value = id;
+            document.getElementById('meal-name').value = meal.name;
+            currentIngredients = [...meal.ingredients];
+            renderIngredientsList();
+            document.getElementById('meal-modal').classList.add('active');
+        }
+
+        function deleteMeal(id) {
+            if (confirm('Delete this meal?')) {
+                appData.meals = appData.meals.filter(m => m.id !== id);
+                saveData();
+                renderMeals();
+                renderCalendar();
+            }
+        }
+
+        function renderPantry() {
+            const list = document.getElementById('pantry-list');
+            list.innerHTML = '';
+            if (appData.pantry.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">Your pantry is empty</p>';
+                return;
+            }
+            appData.pantry.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'row';
+                row.innerHTML = `
+                    <div class="row-content">
+                        <div class="row-title">${item.name}</div>
+                        <div class="row-subtitle">${item.amount}</div>
+                    </div>
+                    <div class="row-actions">
+                        <button class="icon-button" onclick="deleteFromPantry('${item.id}')" title="Remove">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function filterPantry(search) {
+            const searchLower = search.toLowerCase();
+            const rows = document.querySelectorAll('#pantry-list .row');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchLower) ? '' : 'none';
+            });
+        }
+
+        function deleteFromPantry(id) {
+            appData.pantry = appData.pantry.filter(p => p.id !== id);
+            saveData();
+            renderPantry();
+            renderCalendar();
+        }
+
+        function renderGrocery() {
+            const list = document.getElementById('grocery-list');
+            list.innerHTML = '';
+            if (appData.grocery.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No items in grocery list</p>';
+                return;
+            }
+            appData.grocery.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'row';
+                row.innerHTML = `
+                    <div class="checkbox ${item.checked ? 'checked' : ''}" onclick="toggleGroceryItem('${item.id}')"></div>
+                    <div class="row-content" style="opacity: ${item.checked ? '0.5' : '1'}">
+                        <div class="row-title">${item.name}</div>
+                        <div class="row-subtitle">${item.amount}</div>
+                    </div>
+                    <div class="row-actions">
+                        ${item.checked ? `
+                            <button class="button" style="padding: 8px 16px; font-size: 13px;" onclick="moveToPantry('${item.id}')">
+                                Move to Pantry
+                            </button>
+                        ` : ''}
+                        <button class="icon-button" onclick="deleteFromGrocery('${item.id}')" title="Delete">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function toggleGroceryItem(id) {
+            const item = appData.grocery.find(g => g.id === id);
+            item.checked = !item.checked;
+            saveData();
+            renderGrocery();
+        }
+
+        function moveToPantry(id) {
+            const item = appData.grocery.find(g => g.id === id);
+            if (!item) return;
+            
+            // Check if item already exists in pantry
+            const existingItem = appData.pantry.find(p => p.name.toLowerCase() === item.name.toLowerCase());
+            if (!existingItem) {
+                appData.pantry.push({
+                    id: Date.now() + Math.random(),
+                    name: item.name,
+                    amount: item.amount
+                });
+            }
+            
+            appData.grocery = appData.grocery.filter(g => g.id !== id);
+            saveData();
+            renderPantry();
+            renderGrocery();
+            renderCalendar();
+        }
+
+        function deleteFromGrocery(id) {
+            appData.grocery = appData.grocery.filter(g => g.id !== id);
+            saveData();
+            renderGrocery();
+        }
+
+        function showAddItemModal(type) {
+            document.getElementById('item-modal-title').textContent = type === 'pantry' ? 'Add to Pantry' : 'Add to Grocery List';
+            document.getElementById('item-type').value = type;
+            document.getElementById('item-name').value = '';
+            document.getElementById('item-amount').value = '';
+            document.getElementById('item-modal').classList.add('active');
+        }
+
+        function closeItemModal() {
+            document.getElementById('item-modal').classList.remove('active');
+        }
+
+        function saveItem() {
+            const type = document.getElementById('item-type').value;
+            const name = document.getElementById('item-name').value.trim();
+            const amount = document.getElementById('item-amount').value.trim();
+            if (!name) return;
+            const item = { id: Date.now() + Math.random(), name, amount };
+            if (type === 'pantry') {
+                appData.pantry.push(item);
+                renderPantry();
+            } else {
+                item.checked = false;
+                appData.grocery.push(item);
+                renderGrocery();
+            }
+            saveData();
+            renderCalendar();
+            closeItemModal();
+        }
+
+        function showSettings() {
+            document.getElementById('settings-modal').classList.add('active');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('active');
+        }
+
+        function connectGmail() {
+            alert('Gmail sync would connect here. This requires OAuth implementation with Google API.');
+            showSyncStatus('Connected to Gmail');
+        }
+
+        function connectICloud() {
+            alert('iCloud sync would connect here. This requires CloudKit API implementation.');
+            showSyncStatus('Connected to iCloud');
+        }
+
+        function showSyncStatus(message) {
+            const status = document.getElementById('sync-status');
+            status.textContent = message;
+            status.classList.add('active');
+        }
+
+        function syncData() {
+            alert('Syncing with cloud... (This is a demo - real implementation would sync with your chosen provider)');
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(appData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'meal-planner-data.json';
+            link.click();
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = event => {
+                    try {
+                        appData = JSON.parse(event.target.result);
+                        saveData();
+                        renderCalendar();
+                        renderMeals();
+                        renderPantry();
+                        renderGrocery();
+                        alert('Data imported successfully!');
+                    } catch (err) {
+                        alert('Error importing data. Please check the file format.');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+    </script>
+</body>
+</html>
