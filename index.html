@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌶️ Harissa</title>
+    <title>Harissa</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -19,10 +19,7 @@
                     Sync
                 </button>
                 <button class="button" onclick="showSettings()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2m7-5.2h-6m-6 0H1m13.2-5.2l-4.2 4.2m0-6l4.2-4.2"/>
-                    </svg>
+                    <img src="Resources/settings-gear.svg" alt="Settings" width="20" height="20" style="filter: brightness(0) invert(1);">
                     Settings
                 </button>
             </div>
@@ -56,7 +53,10 @@
         <div id="meals-tab" class="tab-content">
             <div class="section-header">
                 <h2>My Meals</h2>
-                <button class="button" onclick="showAddMealModal()">Add Meal</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="button" onclick="showAddMealModal()">Add Meal</button>
+                    <button class="button" onclick="showImportRecipeModal()">Import Recipe</button>
+                </div>
             </div>
             <div class="search-bar">
                 <input type="text" class="search-input" placeholder="Search meals..." oninput="filterMeals(this.value)">
@@ -79,6 +79,9 @@
             <div class="section-header">
                 <h2>Grocery List</h2>
                 <button class="button" onclick="showAddItemModal('grocery')">Add Item</button>
+            </div>
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Search grocery list..." oninput="filterGrocery(this.value)">
             </div>
             <div id="grocery-list" class="list-container"></div>
         </div>
@@ -107,17 +110,48 @@
                 </div>
                 <div class="form-group">
                     <label>Ingredients</label>
-                    <div id="ingredients-list"></div>
                     <div class="ingredient-input-group">
                         <input type="text" id="ingredient-name" class="input" placeholder="Ingredient name">
                         <input type="text" id="ingredient-amount" class="input" placeholder="Amount">
                         <button class="button" onclick="addIngredient()">Add</button>
                     </div>
+                    <div id="ingredients-list" style="margin-top: 12px;"></div>
+                </div>
+                <div class="form-group">
+                    <label>Instructions</label>
+                    <textarea id="meal-instructions" class="input" placeholder="e.g., 1. Boil pasta..., 2. Make sauce..." style="min-height: 100px; resize: vertical;"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="button secondary" onclick="closeMealModal()">Cancel</button>
                 <button class="button primary" onclick="saveMeal()">Save Meal</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="import-recipe-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Import Recipe from Website</h3>
+                <button class="close-button" onclick="closeImportRecipeModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Recipe Website URL</label>
+                    <input type="text" id="recipe-url" class="input" placeholder="e.g., https://www.example.com/recipe">
+                </div>
+                <div class="form-group">
+                    <p style="color: var(--text-secondary); font-size: 13px; margin: 12px 0;">Paste the website URL above and click "Extract Recipe" to automatically fill in the meal details.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="button secondary" onclick="closeImportRecipeModal()">Cancel</button>
+                <button class="button primary" onclick="extractRecipeFromUrl()">Extract Recipe</button>
             </div>
         </div>
     </div>
@@ -477,6 +511,7 @@
             appData.meals.forEach(meal => {
                 const status = checkMealStatus(meal);
                 const sourceHtml = meal.source ? `<div class="row-source">${isValidUrl(meal.source) ? `<a href="${meal.source}" target="_blank" rel="noopener noreferrer">${meal.source}</a>` : meal.source}</div>` : '';
+                const instructionsHtml = meal.instructions ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.02); border-radius: 6px; max-height: 60px; overflow: hidden; text-overflow: ellipsis;">${meal.instructions}</div>` : '';
                 const row = document.createElement('div');
                 row.className = 'row';
                 row.innerHTML = `
@@ -484,6 +519,7 @@
                         <div class="row-title">${meal.name}</div>
                         ${sourceHtml}
                         <div class="row-subtitle">${meal.ingredients.length} ingredients - ${status === 'complete' ? 'Ready to cook' : 'Missing ingredients'}</div>
+                        ${instructionsHtml}
                     </div>
                     <div class="row-actions">
                         <button class="icon-button" onclick="editMeal('${meal.id}')" title="Edit">
@@ -527,6 +563,7 @@
             document.getElementById('edit-meal-id').value = '';
             document.getElementById('meal-name').value = '';
             document.getElementById('meal-source').value = '';
+            document.getElementById('meal-instructions').value = '';
             currentIngredients = [];
             renderIngredientsList();
             document.getElementById('meal-modal').classList.add('active');
@@ -534,6 +571,156 @@
 
         function closeMealModal() {
             document.getElementById('meal-modal').classList.remove('active');
+        }
+
+        function showImportRecipeModal() {
+            document.getElementById('recipe-url').value = '';
+            document.getElementById('import-recipe-modal').classList.add('active');
+        }
+
+        function closeImportRecipeModal() {
+            document.getElementById('import-recipe-modal').classList.remove('active');
+        }
+
+        function extractRecipeFromUrl() {
+            const url = document.getElementById('recipe-url').value.trim();
+            if (!url) {
+                showNotification('Please enter a URL', 'error');
+                return;
+            }
+
+            showNotification('Extracting recipe from website...', 'success');
+            
+            // Use a CORS proxy to fetch the webpage
+            const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+            const fetchUrl = corsProxy + url;
+            
+            fetch(fetchUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch the webpage. The website may not allow automated access.');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Extract recipe information
+                    const recipe = extractRecipeData(doc, url);
+                    
+                    // Fill the meal form with extracted data
+                    fillMealFormWithRecipe(recipe);
+                    
+                    closeImportRecipeModal();
+                    showNotification('Recipe imported successfully!', 'success');
+                })
+                .catch(error => {
+                    showNotification('Could not extract recipe. Please fill in the details manually.', 'error');
+                    console.error('Error:', error);
+                });
+        }
+
+        function extractRecipeData(doc, sourceUrl) {
+            const recipe = {
+                name: '',
+                ingredients: [],
+                instructions: '',
+                source: sourceUrl
+            };
+
+            // Try to extract recipe name from common selectors
+            let nameElement = doc.querySelector('h1') || doc.querySelector('[data-recipe-name]') || doc.querySelector('title');
+            if (nameElement) {
+                recipe.name = nameElement.textContent.trim().split('|')[0].slice(0, 100);
+            }
+
+            // Try to extract ingredients from common selectors
+            const ingredientSelectors = [
+                '[data-ingredient]',
+                '.ingredient',
+                '.ingredients li',
+                '[itemprop="recipeIngredient"]',
+                '.recipe-ingredients li',
+                'li:contains("ingredient")'
+            ];
+            
+            for (let selector of ingredientSelectors) {
+                const ingredientElements = doc.querySelectorAll(selector);
+                if (ingredientElements.length > 0) {
+                    ingredientElements.forEach(el => {
+                        const text = el.textContent.trim();
+                        if (text.length > 0 && text.length < 200) {
+                            // Simple parsing: assume format is "amount name" or just "name"
+                            const parts = text.split(/\s+/, 2);
+                            if (parts.length === 2 && isNaN(parts[0]) === false) {
+                                recipe.ingredients.push({
+                                    name: parts.slice(1).join(' '),
+                                    amount: parts[0]
+                                });
+                            } else {
+                                recipe.ingredients.push({
+                                    name: text,
+                                    amount: ''
+                                });
+                            }
+                        }
+                    });
+                    if (recipe.ingredients.length > 0) break;
+                }
+            }
+
+            // Try to extract instructions from common selectors
+            const instructionSelectors = [
+                '[data-instructions]',
+                '.instructions',
+                '.recipe-instructions',
+                '[itemprop="recipeInstructions"]',
+                '.recipe-steps'
+            ];
+            
+            for (let selector of instructionSelectors) {
+                const instructionElement = doc.querySelector(selector);
+                if (instructionElement) {
+                    const steps = [];
+                    const stepElements = instructionElement.querySelectorAll('li, p, .step');
+                    stepElements.forEach((step, index) => {
+                        const text = step.textContent.trim();
+                        if (text.length > 0 && text.length < 300) {
+                            steps.push(text);
+                        }
+                    });
+                    if (steps.length > 0) {
+                        recipe.instructions = steps.join('\n');
+                    } else {
+                        recipe.instructions = instructionElement.textContent.trim().slice(0, 500);
+                    }
+                    if (recipe.instructions) break;
+                }
+            }
+
+            // Clean up ingredients - remove empty ones and limit to 20
+            recipe.ingredients = recipe.ingredients
+                .filter(ing => ing.name.length > 0)
+                .slice(0, 20);
+
+            return recipe;
+        }
+
+        function fillMealFormWithRecipe(recipe) {
+            // Clear and populate the meal form
+            document.getElementById('meal-modal-title').textContent = 'Add New Meal (Imported)';
+            document.getElementById('edit-meal-id').value = '';
+            document.getElementById('meal-name').value = recipe.name;
+            document.getElementById('meal-source').value = recipe.source;
+            document.getElementById('meal-instructions').value = recipe.instructions;
+            
+            // Set ingredients
+            currentIngredients = recipe.ingredients;
+            renderIngredientsList();
+            
+            // Open meal modal
+            document.getElementById('meal-modal').classList.add('active');
         }
 
         function addIngredient() {
@@ -573,6 +760,7 @@
         function saveMeal() {
             const name = document.getElementById('meal-name').value.trim();
             const source = document.getElementById('meal-source').value.trim();
+            const instructions = document.getElementById('meal-instructions').value.trim();
             const editId = document.getElementById('edit-meal-id').value;
             if (!name || currentIngredients.length === 0) {
                 alert('Please enter a meal name and at least one ingredient');
@@ -584,6 +772,7 @@
                 const meal = appData.meals.find(m => m.id === editId);
                 meal.name = name;
                 meal.source = source;
+                meal.instructions = instructions;
                 meal.ingredients = [...currentIngredients];
                 mealId = editId;
             } else {
@@ -592,6 +781,7 @@
                     id: mealId,
                     name,
                     source,
+                    instructions,
                     ingredients: [...currentIngredients]
                 });
             }
@@ -639,6 +829,7 @@
             document.getElementById('edit-meal-id').value = id;
             document.getElementById('meal-name').value = meal.name;
             document.getElementById('meal-source').value = meal.source || '';
+            document.getElementById('meal-instructions').value = meal.instructions || '';
             currentIngredients = [...meal.ingredients];
             renderIngredientsList();
             document.getElementById('meal-modal').classList.add('active');
@@ -697,6 +888,15 @@
             });
         }
 
+        function filterGrocery(search) {
+            const searchLower = search.toLowerCase();
+            const rows = document.querySelectorAll('#grocery-list .row');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchLower) ? '' : 'none';
+            });
+        }
+
         function deleteFromPantry(id) {
             appData.pantry = appData.pantry.filter(p => p.id !== id);
             saveData();
@@ -748,6 +948,33 @@
         function toggleGroceryItem(id) {
             const item = appData.grocery.find(g => g.id === id);
             item.checked = !item.checked;
+            
+            // If item is checked, move it to pantry
+            if (item.checked) {
+                const existingItem = appData.pantry.find(p => p.name.toLowerCase() === item.name.toLowerCase());
+                if (existingItem) {
+                    // If item exists in pantry, add quantities
+                    // Try to parse amounts as numbers if possible
+                    const currentAmount = parseFloat(existingItem.amount) || 0;
+                    const newAmount = parseFloat(item.amount) || 0;
+                    const sum = currentAmount + newAmount;
+                    existingItem.amount = isNaN(sum) || sum === 0 ? (existingItem.amount + ' + ' + item.amount) : sum.toString();
+                } else {
+                    // If item doesn't exist in pantry, add it
+                    appData.pantry.push({
+                        id: Date.now() + Math.random(),
+                        name: item.name,
+                        amount: item.amount
+                    });
+                }
+                
+                // Remove from grocery list
+                appData.grocery = appData.grocery.filter(g => g.id !== id);
+                showNotification('Item moved to pantry!', 'success');
+                renderPantry();
+                renderGrocery();
+            }
+            
             saveData();
             renderGrocery();
         }

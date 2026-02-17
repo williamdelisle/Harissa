@@ -534,7 +534,7 @@
         }
 
         .ingredient-input-group {
-            display: grid;
+            display: flex;
             grid-template-columns: 2fr 1fr auto;
             gap: 8px;
             margin-top: 12px;
