@@ -52,7 +52,7 @@
 
         <div id="meals-tab" class="tab-content">
             <div class="section-header">
-                <h2>My Meals</h2>
+                <h2>Meals</h2>
                 <div style="display: flex; gap: 8px;">
                     <button class="button" onclick="showAddMealModal()">Add Meal</button>
                     <button class="button" onclick="showImportRecipeModal()">Import Recipe</button>
@@ -512,6 +512,12 @@
                 const status = checkMealStatus(meal);
                 const sourceHtml = meal.source ? `<div class="row-source">${isValidUrl(meal.source) ? `<a href="${meal.source}" target="_blank" rel="noopener noreferrer">${meal.source}</a>` : meal.source}</div>` : '';
                 const instructionsHtml = meal.instructions ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.02); border-radius: 6px; max-height: 60px; overflow: hidden; text-overflow: ellipsis;">${meal.instructions}</div>` : '';
+                
+                // Get missing ingredients
+                const missingIngredients = meal.ingredients.filter(ing => 
+                    !appData.pantry.some(p => p.name.toLowerCase() === ing.name.toLowerCase())
+                );
+                
                 const row = document.createElement('div');
                 row.className = 'row';
                 row.innerHTML = `
@@ -519,9 +525,13 @@
                         <div class="row-title">${meal.name}</div>
                         ${sourceHtml}
                         <div class="row-subtitle">${meal.ingredients.length} ingredients - ${status === 'complete' ? 'Ready to cook' : 'Missing ingredients'}</div>
-                        ${instructionsHtml}
                     </div>
                     <div class="row-actions">
+                        ${status === 'incomplete' && missingIngredients.length > 0 ? `
+                            <button class="icon-button" style="padding: 8px 12px; font-size: 12px;" onclick="addMissingIngredientsToGrocery('${meal.id}')" title="Add missing ingredients to grocery list">
+                                +                           
+                            </button>
+                        ` : ''}
                         <button class="icon-button" onclick="editMeal('${meal.id}')" title="Edit">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -842,6 +852,44 @@
                 renderMeals();
                 renderCalendar();
                 showNotification('Meal deleted successfully!', 'success');
+            }
+        }
+
+        function addMissingIngredientsToGrocery(mealId) {
+            const meal = appData.meals.find(m => m.id === mealId);
+            if (!meal) return;
+            
+            // Get missing ingredients
+            const missingIngredients = meal.ingredients.filter(ing => 
+                !appData.pantry.some(p => p.name.toLowerCase() === ing.name.toLowerCase())
+            );
+            
+            if (missingIngredients.length === 0) {
+                showNotification('All ingredients are already in your pantry!', 'error');
+                return;
+            }
+            
+            let addedCount = 0;
+            missingIngredients.forEach(ing => {
+                // Check if ingredient already exists in grocery list
+                const existingItem = appData.grocery.find(g => g.name.toLowerCase() === ing.name.toLowerCase());
+                if (!existingItem) {
+                    appData.grocery.push({
+                        id: Date.now() + Math.random(),
+                        name: ing.name,
+                        amount: ing.amount,
+                        checked: false
+                    });
+                    addedCount++;
+                }
+            });
+            
+            if (addedCount > 0) {
+                saveData();
+                renderGrocery();
+                showNotification(`${addedCount} missing ingredient${addedCount > 1 ? 's' : ''} added to grocery list!`, 'success');
+            } else {
+                showNotification('All missing ingredients are already in your grocery list!', 'error');
             }
         }
 
