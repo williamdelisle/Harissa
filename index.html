@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Harissa</title>
+    <link rel="icon" href="Resources/chilli-pepper-icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -967,6 +968,7 @@
                     <div class="checkbox ${item.checked ? 'checked' : ''}" onclick="toggleGroceryItem('${item.id}')"></div>
                     <div class="row-content" style="opacity: ${item.checked ? '0.5' : '1'}">
                         <div class="row-title">${item.name}</div>
+                        <div class="row-title">${item.id}</div> // DEBUG
                         <div class="row-subtitle">${item.amount}</div>
                     </div>
                     <div class="row-actions">
@@ -996,7 +998,8 @@
         function toggleGroceryItem(id) {
             const item = appData.grocery.find(g => g.id === id);
             item.checked = !item.checked;
-            
+            showNotification(`Item ${id} toggled!`);
+
             // If item is checked, move it to pantry
             if (item.checked) {
                 const existingItem = appData.pantry.find(p => p.name.toLowerCase() === item.name.toLowerCase());
@@ -1007,6 +1010,7 @@
                     const newAmount = parseFloat(item.amount) || 0;
                     const sum = currentAmount + newAmount;
                     existingItem.amount = isNaN(sum) || sum === 0 ? (existingItem.amount + ' + ' + item.amount) : sum.toString();
+                    showNotification('Item already exists in pantry, quantities combined!', 'success');
                 } else {
                     // If item doesn't exist in pantry, add it
                     appData.pantry.push({
@@ -1052,7 +1056,7 @@
             appData.grocery = appData.grocery.filter(g => g.id !== id);
             saveData();
             renderGrocery();
-            showNotification('Item removed from grocery list!', 'success');
+            showNotification(`Item ${id} removed from grocery list!`, 'success');
         }
 
         function editGroceryItem(id) {
