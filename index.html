@@ -13,12 +13,6 @@
         <header class="header">
             <h1 class="app-title">Harissa</h1>
             <div class="header-actions">
-                <button class="button sync-button" onclick="syncData()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                    </svg>
-                    Sync
-                </button>
                 <button class="button" onclick="showSettings()">
                     <img src="Resources/settings-gear.svg" alt="Settings" width="20" height="20" style="filter: brightness(0) invert(1);">
                     Settings
@@ -35,18 +29,18 @@
 
         <div id="calendar-tab" class="tab-content active">
             <div class="week-navigation">
-                <button class="button" onclick="previousWeek()">
+                <button class="button" onclick="previousWeek()" title="Previous week">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="15 18 9 12 15 6"/>
                     </svg>
                 </button>
                 <h2 id="week-display">Week of Jan 1, 2025</h2>
-                <button class="button" onclick="nextWeek()">
+                <button class="button" onclick="nextWeek()" title="Next week">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="9 18 15 12 9 6"/>
                     </svg>
                 </button>
-                <button class="button" onclick="goToToday()">Today</button>
+                <button class="button" onclick="goToToday()" title="Go to this week">This Week</button>
             </div>
             <div class="calendar-grid" id="calendar-grid"></div>
         </div>
@@ -68,7 +62,9 @@
         <div id="pantry-tab" class="tab-content">
             <div class="section-header">
                 <h2>Pantry</h2>
-                <button class="button" onclick="showAddItemModal('pantry')">Add Item</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="button" onclick="showAddItemModal('pantry')">Add Item</button>
+                </div>
             </div>
             <div class="search-bar">
                 <input type="text" class="search-input" placeholder="Search pantry..." oninput="filterPantry(this.value)">
@@ -79,7 +75,12 @@
         <div id="grocery-tab" class="tab-content">
             <div class="section-header">
                 <h2>Grocery List</h2>
-                <button class="button" onclick="showAddItemModal('grocery')">Add Item</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="button" style="padding: 8px 16px; font-size: 13px;" onclick="moveSelectedToPantry()">
+                        Move to Pantry
+                    </button>
+                    <button class="button" onclick="showAddItemModal('grocery')">Add Item</button>
+                </div>
             </div>
             <div class="search-bar">
                 <input type="text" class="search-input" placeholder="Search grocery list..." oninput="filterGrocery(this.value)">
@@ -124,7 +125,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="button secondary" onclick="closeMealModal()">Cancel</button>
+                <button class="button cancel" onclick="closeMealModal()">Cancel</button>
                 <button class="button primary" onclick="saveMeal()">Save Meal</button>
             </div>
         </div>
@@ -151,7 +152,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="button secondary" onclick="closeImportRecipeModal()">Cancel</button>
+                <button class="button cancel" onclick="closeImportRecipeModal()">Cancel</button>
                 <button class="button primary" onclick="extractRecipeFromUrl()">Extract Recipe</button>
             </div>
         </div>
@@ -181,7 +182,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="button secondary" onclick="closeItemModal()">Cancel</button>
+                <button class="button cancel" onclick="closeItemModal()">Cancel</button>
                 <button class="button primary" onclick="saveItem()">Add Item</button>
             </div>
         </div>
@@ -216,7 +217,7 @@
                     <p class="help-text">Quickly schedule a meal without adding ingredients</p>
                 </div>
                 <div class="button-group">
-                    <button class="button secondary" onclick="openCreateMealFromSchedule()">
+                    <button class="button primaryonclick="openCreateMealFromSchedule()">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -226,7 +227,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="button secondary" onclick="closeScheduleModal()">Cancel</button>
+                <button class="button cancel" onclick="closeScheduleModal()">Cancel</button>
                 <button class="button primary" onclick="scheduleMeal()">Schedule</button>
             </div>
         </div>
@@ -245,17 +246,31 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
+                    <label>Accent color</label>
+                    <p class="help-text">Customize the highlight color</p>
+                    <input type="color" id="accent-color" class="input" style="height: 46px; padding: 0px 0px;" oninput="handleAccentColorChange(this.value)">
+                </div>
+                <div class="form-group">
                     <label>Cloud Backup</label>
+                    <p class="help-text">Force the app to sync your data with the cloud</p>
+                    <button class="button primary" onclick="syncData()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                        </svg>
+                        Sync
+                    </button>
+                </div>
+                <div class="form-group">
                     <p class="help-text">Connect your account to backup and sync your data across devices</p>
                     <div class="button-group">
-                        <button class="button" onclick="connectGmail()">
+                        <button class="button primary" onclick="connectGmail()">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                                 <polyline points="22,6 12,13 2,6"/>
                             </svg>
                             Gmail
                         </button>
-                        <button class="button" onclick="connectICloud()">
+                        <button class="button primary" onclick="connectICloud()">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
                             </svg>
@@ -266,14 +281,15 @@
                 </div>
                 <div class="form-group">
                     <label>Data Management</label>
+                    <p class="help-text">Export and import your data to and from your device</p>
                     <div class="button-group">
-                        <button class="button secondary" onclick="exportData()">Export Data</button>
-                        <button class="button secondary" onclick="importData()">Import Data</button>
+                        <button class="button primary" onclick="exportData()">Export Data</button>
+                        <button class="button primary" onclick="importData()">Import Data</button>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="button" onclick="closeSettings()">Close</button>
+                <button class="button cancel" onclick="closeSettings()">Close</button>
             </div>
         </div>
     </div>
@@ -292,12 +308,84 @@
         let currentIngredients = [];
 
         document.addEventListener('DOMContentLoaded', function() {
+            applyThemeFromStorage();
             loadData();
             renderCalendar();
             renderMeals();
             renderPantry();
             renderGrocery();
         });
+
+        function getComputedCssVar(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+
+        function rgbToHex(rgb) {
+            const m = rgb.match(/^rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)(?:\s*,\s*([0-9.]+)\s*)?\)$/i);
+            if (!m) return null;
+            const r = Math.max(0, Math.min(255, Math.round(Number(m[1]))));
+            const g = Math.max(0, Math.min(255, Math.round(Number(m[2]))));
+            const b = Math.max(0, Math.min(255, Math.round(Number(m[3]))));
+            return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+        }
+
+        function hexToRgb(hex) {
+            const h = hex.replace('#', '').trim();
+            if (!/^[0-9a-f]{6}$/i.test(h)) return null;
+            return {
+                r: parseInt(h.slice(0, 2), 16),
+                g: parseInt(h.slice(2, 4), 16),
+                b: parseInt(h.slice(4, 6), 16)
+            };
+        }
+
+        function rgbToHexFromParts({ r, g, b }) {
+            return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+        }
+
+        function deriveAccentHover(accentHex) {
+            const rgb = hexToRgb(accentHex);
+            if (!rgb) return null;
+            // Darken ~18% for hover
+            const factor = 0.82;
+            return rgbToHexFromParts({
+                r: rgb.r * factor,
+                g: rgb.g * factor,
+                b: rgb.b * factor
+            });
+        }
+
+        function setAccentColor(accentHex) {
+            if (!/^#[0-9a-f]{6}$/i.test(accentHex)) return;
+            const root = document.documentElement;
+            root.style.setProperty('--accent', accentHex);
+            const hover = deriveAccentHover(accentHex);
+            if (hover) root.style.setProperty('--accent-hover', hover);
+        }
+
+        function getAccentColorHex() {
+            const raw = getComputedCssVar('--accent');
+            if (!raw) return '#007aff';
+            if (raw.startsWith('#') && /^#[0-9a-f]{6}$/i.test(raw)) return raw;
+            const converted = rgbToHex(raw);
+            return converted || '#007aff';
+        }
+
+        function applyThemeFromStorage() {
+            const saved = localStorage.getItem('harissaTheme');
+            if (!saved) return;
+            try {
+                const theme = JSON.parse(saved);
+                if (theme?.accent) setAccentColor(theme.accent);
+            } catch {
+                // ignore invalid theme
+            }
+        }
+
+        function handleAccentColorChange(value) {
+            setAccentColor(value);
+            localStorage.setItem('harissaTheme', JSON.stringify({ accent: value }));
+        }
 
         function loadData() {
             const saved = localStorage.getItem('mealPlannerData');
@@ -331,13 +419,14 @@
             grid.innerHTML = '';
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
+            const todayStr = new Date().toISOString().split('T')[0];
             
             for (let i = 0; i < 7; i++) {
                 const date = new Date(currentWeekStart);
                 date.setDate(date.getDate() + i);
                 const dateStr = date.toISOString().split('T')[0];
                 const dayColumn = document.createElement('div');
-                dayColumn.className = 'day-column';
+                dayColumn.className = `day-column${dateStr === todayStr ? ' today' : ''}`;
                 dayColumn.innerHTML = `
                     <div class="day-header">
                         <div class="day-name">${days[i]}</div>
@@ -968,15 +1057,9 @@
                     <div class="checkbox ${item.checked ? 'checked' : ''}" onclick="toggleGroceryItem('${item.id}')"></div>
                     <div class="row-content" style="opacity: ${item.checked ? '0.5' : '1'}">
                         <div class="row-title">${item.name}</div>
-                        <div class="row-title">${item.id}</div> // DEBUG
                         <div class="row-subtitle">${item.amount}</div>
                     </div>
                     <div class="row-actions">
-                        ${item.checked ? `
-                            <button class="button" style="padding: 8px 16px; font-size: 13px;" onclick="moveToPantry('${item.id}')">
-                                Move to Pantry
-                            </button>
-                        ` : ''}
                         <button class="icon-button" onclick="editGroceryItem('${item.id}')" title="Edit">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -996,10 +1079,45 @@
         }
 
         function toggleGroceryItem(id) {
-            const item = appData.grocery.find(g => g.id === id);
-            item.checked = !item.checked;
-            showNotification(`Item ${id} toggled!`);
+            const item = appData.grocery.find(g => g.id == id);
 
+            //toggle checked state (item.checked = !item.checked didn't work)
+            if (item.checked == false) {
+                item.checked = true;
+            }
+            else {
+                item.checked = false;
+            }
+
+            saveData();
+            renderGrocery();
+        }
+
+        function moveSelectedToPantry() {
+            const items = appData.grocery;
+            if (items.length == 0) {
+                showNotification('No items in grocery!', 'error');
+                return;
+            }
+
+            showNotification('Found ' + items.length + ' items in grocey list.', 'success');
+
+            movedItemsName = [];
+
+            for (let item of items) {
+                if (item.checked){
+                    movedItemsName.push(item.name);
+                    moveToPantry(item.id);
+                };
+            }
+
+            if (movedItemsName.length > 0){
+                showNotification('Checked items moved: ' + movedItemsName.join(", "));
+                saveData();
+                renderGrocery();
+            }
+            
+            /*
             // If item is checked, move it to pantry
             if (item.checked) {
                 const existingItem = appData.pantry.find(p => p.name.toLowerCase() === item.name.toLowerCase());
@@ -1029,6 +1147,9 @@
             
             saveData();
             renderGrocery();
+            */
+
+
         }
 
         function moveToPantry(id) {
@@ -1140,6 +1261,8 @@
         }
 
         function showSettings() {
+            const input = document.getElementById('accent-color');
+            if (input) input.value = getAccentColorHex();
             document.getElementById('settings-modal').classList.add('active');
         }
 
